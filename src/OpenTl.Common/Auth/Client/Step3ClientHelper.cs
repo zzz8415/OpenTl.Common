@@ -16,12 +16,13 @@
 
     public static class Step3ClientHelper
     {
-        public static RequestSetClientDHParams GetRequest(TServerDHParamsOk serverDhParams, byte[] newNonce, out AsymmetricCipherKeyPair clientKeyPair, out DHPublicKeyParameters serverPublicKey )
+        public static RequestSetClientDHParams GetRequest(TServerDHParamsOk serverDhParams, byte[] newNonce, out byte[] clientAgree, out int serverTime)
         {
             AesHelper.ComputeAESParameters(newNonce, serverDhParams.ServerNonce, out var aesKeyData);
             
             var dhInnerData = DeserializeResponse(serverDhParams, aesKeyData);
-                
+            serverTime = dhInnerData.ServerTime;
+            
             var p = new BigInteger(SerializationUtils.GetBinaryFromString(dhInnerData.DhPrime));  
             var g = BigInteger.ValueOf(dhInnerData.G);
             Guard.That(g).IsValidDhGParameter(p);
@@ -31,23 +32,25 @@
             var keyGen = GeneratorUtilities.GetKeyPairGenerator("DH");
             keyGen.Init(kgp);
 
-            clientKeyPair = keyGen.GenerateKeyPair();
-
+            var clientKeyPair = keyGen.GenerateKeyPair();
             var publicKey = ((DHPublicKeyParameters)clientKeyPair.Public);
 
             var y = new BigInteger(SerializationUtils.GetBinaryFromString(dhInnerData.GA));
             Guard.That(y).IsValidDhPublicKey(dhParameters.P);
             
-            serverPublicKey = new DHPublicKeyParameters(y, dhParameters);
-
+            var serverPublicKey = new DHPublicKeyParameters(y, dhParameters);
+            var clientKeyAgree = AgreementUtilities.GetBasicAgreement("DH");
+            clientKeyAgree.Init(clientKeyPair.Private);
+            clientAgree = clientKeyAgree.CalculateAgreement(serverPublicKey).ToByteArray();
+            
             var clientDhInnerData = new TClientDHInnerData
-                                    {
-                                        RetryId = 0,
-                                        Nonce = serverDhParams.Nonce,
-                                        ServerNonce = serverDhParams.ServerNonce,
-                                        GB = SerializationUtils.GetStringFromBinary(publicKey.Y.ToByteArray())
-                                    };
-
+            {
+                RetryId = 0,
+                Nonce = serverDhParams.Nonce,
+                ServerNonce = serverDhParams.ServerNonce,
+                GB = SerializationUtils.GetStringFromBinary(publicKey.Y.ToByteArray())
+            };
+            
             return SerializeRequest(clientDhInnerData, aesKeyData);
         }
 

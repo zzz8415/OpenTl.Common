@@ -2,6 +2,7 @@
 {
     using System;
     using System.IO;
+    using System.Linq;
 
     using OpenTl.Common.Crypto;
     using OpenTl.Schema;
@@ -42,28 +43,19 @@
 
             var fingerprint = resPq.ServerPublicKeyFingerprints[0];
 
-            byte[] ciphertext;
-            using (var buffer = new MemoryStream(255))
-            using (var writer = new BinaryWriter(buffer))
+            var hashsum = SHA1Helper.ComputeHashsum(innerData);
+            var innerDataWithHash = hashsum.Concat(innerData).ToArray();
+
+            var ciphertext = RSAHelper.RsaEncryptWithPublic(innerDataWithHash, publicKey);
+
+            if (ciphertext.Length != 256)
             {
-                var hashsum = SHA1Helper.ComputeHashsum(innerData);
-                writer.Write(hashsum);
-
-                buffer.Write(innerData, 0, innerData.Length);
-
-                var innerDataWithHash = buffer.ToArray();
-
-                ciphertext = RSAHelper.RsaEncryptWithPublic(innerDataWithHash, publicKey);
-
-                if (ciphertext.Length != 256)
-                {
-                    var paddedCiphertext = new byte[256];
-                    var padding = 256 - ciphertext.Length;
-                    for (var i = 0; i < padding; i++)
-                        paddedCiphertext[i] = 0;
-                    ciphertext.CopyTo(paddedCiphertext, padding);
-                    ciphertext = paddedCiphertext;
-                }
+                var paddedCiphertext = new byte[256];
+                var padding = 256 - ciphertext.Length;
+                for (var i = 0; i < padding; i++)
+                    paddedCiphertext[i] = 0;
+                ciphertext.CopyTo(paddedCiphertext, padding);
+                ciphertext = paddedCiphertext;
             }
 
             return new RequestReqDHParams

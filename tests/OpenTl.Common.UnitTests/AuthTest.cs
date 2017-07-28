@@ -61,14 +61,10 @@ AgMBAAE=
             
             Assert.Equal(newNonceFromClient, newNonceFromServer);
             
-            var setClientDhParams =  Step3ClientHelper.GetRequest((TServerDHParamsOk)serverDhParams, newNonceFromClient, out var clientKeyPair, out var serverPublicKey );
+            var setClientDhParams =  Step3ClientHelper.GetRequest((TServerDHParamsOk) serverDhParams, newNonceFromClient, out var clientAgree, out var serverTime);
             var setClientDhParamsAnswer = Step3ServerHelper.GetResponse(setClientDhParams, newNonceFromClient, parameters, out var serverAgree, out var serverSalt);
             
-            var clientKeyAgree = AgreementUtilities.GetBasicAgreement("DH");
-            clientKeyAgree.Init(clientKeyPair.Private);
-            var clientAgree = clientKeyAgree.CalculateAgreement(serverPublicKey);
-            
-            Assert.Equal(serverAgree, clientAgree);
+            Assert.Equal(serverAgree.ToByteArray(), clientAgree);
         }
     }
 }
