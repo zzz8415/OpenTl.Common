@@ -15,4 +15,7 @@
       <Name>OpenTl.Schema</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="MessageEncryption" />
+  </ItemGroup>
 </Project>
