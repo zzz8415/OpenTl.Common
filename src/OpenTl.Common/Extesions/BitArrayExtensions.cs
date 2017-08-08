@@ -1,6 +1,5 @@
 ﻿namespace OpenTl.Common.Extesions
 {
-    using System;
     using System.Collections;
 
     public static class BitArrayExtensions

@@ -13,6 +13,9 @@ namespace OpenTl.Common.Crypto
 
     using MoreLinq;
 
+    using OpenTl.Schema;
+    using OpenTl.Schema.Serialization;
+
     using Org.BouncyCastle.Crypto.Parameters;
 
     public static class RSAHelper
@@ -84,14 +87,17 @@ namespace OpenTl.Common.Crypto
             {
                 var keyParameter = (RsaKeyParameters) new PemReader(txtreader).ReadObject();
 
-                var exponent = keyParameter.Exponent.ToByteArray();
-                var modulus = keyParameter.Modulus.ToByteArray();
-                
-                var data = modulus.Concat(exponent).ToArray();
-                
-                var hash = sha1.ComputeHash(data).Reverse().Take(8).ToArray();
+                var rsaPublicKey = new TRsaPublicKey
+                          {
+                              E = keyParameter.Exponent.ToByteArrayUnsigned(),
+                              N = keyParameter.Modulus.ToByteArrayUnsigned()
+                          };
 
-                return BitConverter.ToInt64(hash, 0);
+                var data = Serializer.SerializeObject(rsaPublicKey);
+
+                var hash = sha1.ComputeHash(data);
+
+                return BitConverter.ToInt64(hash, hash.Length - 8);
             }
         }
     }
