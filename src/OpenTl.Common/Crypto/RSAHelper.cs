@@ -7,8 +7,11 @@ using Org.BouncyCastle.OpenSsl;
 namespace OpenTl.Common.Crypto
 {
     using System;
+    using System.Linq;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
+
+    using MoreLinq;
 
     using Org.BouncyCastle.Crypto.Parameters;
 
@@ -79,11 +82,16 @@ namespace OpenTl.Common.Crypto
             using (var sha1 = SHA1.Create())
             using (var txtreader = new StringReader(key))
             {
-                var pemObject = new PemReader(txtreader).ReadPemObject();
-                
-                var hash = sha1.ComputeHash(pemObject.Content);
+                var keyParameter = (RsaKeyParameters) new PemReader(txtreader).ReadObject();
 
-                return BitConverter.ToInt64(hash, hash.Length - 8);
+                var exponent = keyParameter.Exponent.ToByteArray();
+                var modulus = keyParameter.Modulus.ToByteArray();
+                
+                var data = modulus.Concat(exponent).ToArray();
+                
+                var hash = sha1.ComputeHash(data).Reverse().Take(8).ToArray();
+
+                return BitConverter.ToInt64(hash, 0);
             }
         }
     }

@@ -23,7 +23,7 @@
             var dhInnerData = DeserializeResponse(serverDhParams, aesKeyData);
             serverTime = dhInnerData.ServerTime;
             
-            var p = new BigInteger(SerializationUtils.GetBinaryFromString(dhInnerData.DhPrime));  
+            var p = new BigInteger(dhInnerData.DhPrimeAsBinary);  
             var g = BigInteger.ValueOf(dhInnerData.G);
             Guard.That(g).IsValidDhGParameter(p);
 
@@ -35,7 +35,7 @@
             var clientKeyPair = keyGen.GenerateKeyPair();
             var publicKey = ((DHPublicKeyParameters)clientKeyPair.Public);
 
-            var y = new BigInteger(SerializationUtils.GetBinaryFromString(dhInnerData.GA));
+            var y = new BigInteger(dhInnerData.GAAsBinary);
             Guard.That(y).IsValidDhPublicKey(dhParameters.P);
             
             var serverPublicKey = new DHPublicKeyParameters(y, dhParameters);
@@ -48,7 +48,7 @@
                 RetryId = 0,
                 Nonce = serverDhParams.Nonce,
                 ServerNonce = serverDhParams.ServerNonce,
-                GB = SerializationUtils.GetStringFromBinary(publicKey.Y.ToByteArray())
+                GBAsBinary = publicKey.Y.ToByteArray()
             };
             
             return SerializeRequest(clientDhInnerData, aesKeyData);
@@ -66,7 +66,7 @@
 
             return new RequestSetClientDHParams
                    {
-                       EncryptedData = SerializationUtils.GetStringFromBinary(encryptedAnswer),
+                       EncryptedDataAsBinary = encryptedAnswer,
                        Nonce = clientDhInnerData.Nonce,
                        ServerNonce = clientDhInnerData.ServerNonce
                    };
@@ -74,7 +74,7 @@
 
         private static TServerDHInnerData DeserializeResponse(TServerDHParamsOk serverDhParams, AesKeyData aesKeyData)
         {
-            var encryptedAnswer = SerializationUtils.GetBinaryFromString(serverDhParams.EncryptedAnswer);
+            var encryptedAnswer = serverDhParams.EncryptedAnswerAsBinary;
             var answerWithHash = AES.DecryptAes(aesKeyData, encryptedAnswer);
 
             var serverHashsum = answerWithHash.Take(20).ToArray();

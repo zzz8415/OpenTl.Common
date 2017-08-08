@@ -69,11 +69,11 @@
 
             var dhInnerData = new TServerDHInnerData
                               {
-                                  DhPrime = SerializationUtils.GetStringFromBinary(publicKey.Parameters.P.ToByteArray()),
+                                  DhPrimeAsBinary = publicKey.Parameters.P.ToByteArrayUnsigned(),
                                   Nonce = pqInnerData.Nonce,
                                   ServerNonce = pqInnerData.ServerNonce,
                                   G = publicKey.Parameters.G.IntValue,
-                                  GA = SerializationUtils.GetStringFromBinary(publicKey.Y.ToByteArray()),
+                                  GAAsBinary = publicKey.Y.ToByteArrayUnsigned(),
                                   ServerTime = (int)((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()
                               };
 
@@ -84,7 +84,7 @@
 
         private static TPQInnerData DeserializeRequest(RequestReqDHParams reqDhParams, string privateKey)
         {
-            var encryptedDataWithPadding = SerializationUtils.GetBinaryFromString(reqDhParams.EncryptedData);
+            var encryptedDataWithPadding = reqDhParams.EncryptedDataAsBinary;
 
             int index;
             for (index = 0; index < encryptedDataWithPadding.Length; index++)
@@ -123,7 +123,7 @@
             var encryptedAnswer = AES.EncryptAes(aesKeyData, answerWithHash);
             return new TServerDHParamsOk
                    {
-                       EncryptedAnswer = SerializationUtils.GetStringFromBinary(encryptedAnswer),
+                       EncryptedAnswerAsBinary = encryptedAnswer,
                        Nonce = pqInnerData.Nonce,
                        ServerNonce = pqInnerData.ServerNonce
                    };

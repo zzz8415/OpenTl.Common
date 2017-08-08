@@ -29,7 +29,7 @@
 
             var dhParameters = ((DHPrivateKeyParameters)serverKeyPair.Private).Parameters;
             
-            var y = new BigInteger(SerializationUtils.GetBinaryFromString(dhInnerData.GB));
+            var y = new BigInteger(dhInnerData.GBAsBinary);
             Guard.That(y).IsValidDhPublicKey(dhParameters.P);
 
             var clientPublicKey = new DHPublicKeyParameters(y, dhParameters);
@@ -60,7 +60,7 @@
         
         private static TClientDHInnerData DeserializeRequest(RequestSetClientDHParams serverDhParams, AesKeyData aesKeyData)
         {
-            var encryptedAnswer = SerializationUtils.GetBinaryFromString(serverDhParams.EncryptedData);
+            var encryptedAnswer = serverDhParams.EncryptedDataAsBinary;
             var answerWithHash = AES.DecryptAes(aesKeyData, encryptedAnswer);
 
             var serverHashsum = answerWithHash.Take(20).ToArray();

@@ -4,7 +4,10 @@
     using System.IO;
     using System.Linq;
 
+    using BarsGroup.CodeGuard;
+
     using OpenTl.Common.Crypto;
+    using OpenTl.Common.GuardExtensions;
     using OpenTl.Schema;
     using OpenTl.Schema.Serialization;
 
@@ -16,24 +19,19 @@
 
         public static RequestReqDHParams GetRequest(TResPQ resPq, string publicKey, out byte[] newNonce)
         {
-            var pqData = SerializationUtils.GetBinaryFromString(resPq.Pq);
-
-            var pq = new BigInteger(pqData);
+            var pq = new BigInteger(resPq.PqAsBinary);
             var p = BigIntegerHelper.SmallestPrimeFactor(pq);
 
             var q = pq.Divide(p);
-
-            var pStr = SerializationUtils.GetStringFromBinary(p.ToByteArray());
-            var qStr = SerializationUtils.GetStringFromBinary(q.ToByteArray());
 
             newNonce = new byte[32];
             Random.NextBytes(newNonce);
 
             var pqInnerData = new TPQInnerData
                               {
-                                  Pq = resPq.Pq,
-                                  P = pStr,
-                                  Q = qStr,
+                                  PqAsBinary = resPq.PqAsBinary,
+                                  PAsBinary = p.ToByteArrayUnsigned(),
+                                  QAsBinary = q.ToByteArrayUnsigned(),
                                   ServerNonce = resPq.ServerNonce,
                                   Nonce = resPq.Nonce,
                                   NewNonce = newNonce
@@ -41,8 +39,9 @@
 
             var innerData = Serializer.SerializeObject(pqInnerData);
 
-            var fingerprint = resPq.ServerPublicKeyFingerprints[0];
-
+            var fingerprint = RSAHelper.GetFingerprint(publicKey);
+            Guard.That(resPq.ServerPublicKeyFingerprints.Items).Contains(fingerprint);
+            
             var hashsum = SHA1Helper.ComputeHashsum(innerData);
             var innerDataWithHash = hashsum.Concat(innerData).ToArray();
 
@@ -61,11 +60,11 @@
             return new RequestReqDHParams
                    {
                        Nonce = resPq.Nonce,
-                       P = pStr,
-                       Q = qStr,
+                       PAsBinary = p.ToByteArrayUnsigned(),
+                       QAsBinary = q.ToByteArrayUnsigned(),
                        ServerNonce = resPq.ServerNonce,
                        PublicKeyFingerprint = fingerprint,
-                       EncryptedData = SerializationUtils.GetStringFromBinary(ciphertext)
+                       EncryptedDataAsBinary = ciphertext
                    };
         }
     }

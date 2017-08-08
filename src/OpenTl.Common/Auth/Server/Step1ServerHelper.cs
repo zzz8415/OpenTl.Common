@@ -25,7 +25,7 @@
             {
                 Nonce = nonce,
                 ServerNonce = serverNonce,
-                Pq = SerializationUtils.GetStringFromBinary(pq),
+                PqAsBinary = pq    ,
                 ServerPublicKeyFingerprints = new TVector<long>(publicKeyFingerprint)
             };
         }
