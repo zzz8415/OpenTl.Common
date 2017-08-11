@@ -69,11 +69,11 @@
 
             var dhInnerData = new TServerDHInnerData
                               {
-                                  DhPrimeAsBinary = publicKey.Parameters.P.ToByteArrayUnsigned(),
+                                  DhPrimeAsBinary = publicKey.Parameters.P.ToByteArray(),
                                   Nonce = pqInnerData.Nonce,
                                   ServerNonce = pqInnerData.ServerNonce,
                                   G = publicKey.Parameters.G.IntValue,
-                                  GAAsBinary = publicKey.Y.ToByteArrayUnsigned(),
+                                  GAAsBinary = publicKey.Y.ToByteArray(),
                                   ServerTime = (int)((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()
                               };
 
@@ -84,19 +84,7 @@
 
         private static TPQInnerData DeserializeRequest(RequestReqDHParams reqDhParams, string privateKey)
         {
-            var encryptedDataWithPadding = reqDhParams.EncryptedDataAsBinary;
-
-            int index;
-            for (index = 0; index < encryptedDataWithPadding.Length; index++)
-            {
-                if (encryptedDataWithPadding[index] != 0)
-                {
-                    break;
-                }
-            }
-            var dataLength = encryptedDataWithPadding.Length - index;
-            var encryptedData = new byte[dataLength];
-            encryptedDataWithPadding.CopyTo(encryptedData, index);
+            var encryptedData = reqDhParams.EncryptedDataAsBinary;
 
             var innerDataWithHash = RSAHelper.RsaDecryptWithPrivate(encryptedData, privateKey);
 

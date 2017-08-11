@@ -1,3 +1,4 @@
+using OpenTl.Common.Crypto;
 using OpenTl.Schema;
 
 using Xunit;
@@ -53,7 +54,7 @@ AgMBAAE=
         public void SimpleTest()
         {
             Step1ClientHelper.GetRequest(out var nonce);
-            var publicKeyFingerPrint = 12343211L;
+            var publicKeyFingerPrint = RSAHelper.GetFingerprint(PublicKey);
             var resPq = Step1ServerHelper.GetResponse(nonce, publicKeyFingerPrint, out var p, out var q, out var serverNonce);
 
             var reqDhParams = Step2ClientHelper.GetRequest(resPq, PublicKey, out var newNonceFromClient);

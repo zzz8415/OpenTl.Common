@@ -24,14 +24,16 @@
 
             var q = pq.Divide(p);
 
+            Guard.That(p.CompareTo(q) == -1).IsTrue();
+            
             newNonce = new byte[32];
             Random.NextBytes(newNonce);
 
             var pqInnerData = new TPQInnerData
                               {
                                   PqAsBinary = resPq.PqAsBinary,
-                                  PAsBinary = p.ToByteArrayUnsigned(),
-                                  QAsBinary = q.ToByteArrayUnsigned(),
+                                  PAsBinary = p.ToByteArray(),
+                                  QAsBinary = q.ToByteArray(),
                                   ServerNonce = resPq.ServerNonce,
                                   Nonce = resPq.Nonce,
                                   NewNonce = newNonce
@@ -47,21 +49,11 @@
 
             var ciphertext = RSAHelper.RsaEncryptWithPublic(innerDataWithHash, publicKey);
 
-            if (ciphertext.Length != 256)
-            {
-                var paddedCiphertext = new byte[256];
-                var padding = 256 - ciphertext.Length;
-                for (var i = 0; i < padding; i++)
-                    paddedCiphertext[i] = 0;
-                ciphertext.CopyTo(paddedCiphertext, padding);
-                ciphertext = paddedCiphertext;
-            }
-
             return new RequestReqDHParams
                    {
                        Nonce = resPq.Nonce,
-                       PAsBinary = p.ToByteArrayUnsigned(),
-                       QAsBinary = q.ToByteArrayUnsigned(),
+                       PAsBinary = p.ToByteArray(),
+                       QAsBinary = q.ToByteArray(),
                        ServerNonce = resPq.ServerNonce,
                        PublicKeyFingerprint = fingerprint,
                        EncryptedDataAsBinary = ciphertext

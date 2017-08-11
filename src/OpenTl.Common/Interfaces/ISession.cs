@@ -8,8 +8,8 @@ namespace OpenTl.Common.Interfaces
         
         ulong SessionId { get; set; }
         
-        ulong ServerSalt { get; set; }
-        
-        int ServerTime { get; set; }
+        byte[] ServerSalt { get; set; }
+
+        ulong MessageId { get; set; }
     }
 }

@@ -39,7 +39,7 @@
 
             serverAgree = serverKeyAgree.CalculateAgreement(clientPublicKey);
 
-            serverSalt = new BitArray(newNonce.Take(8).ToArray()).Xor(new BitArray(setClientDhParams.ServerNonce.Take(8).ToArray())).ToByteArray();
+            serverSalt = SaltHelper.ComputeServerSalt(newNonce, setClientDhParams.ServerNonce);
             
             return SerializeResponse(setClientDhParams, newNonce, serverAgree);
         }

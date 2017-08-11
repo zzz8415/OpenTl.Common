@@ -25,7 +25,7 @@
             {
                 Nonce = nonce,
                 ServerNonce = serverNonce,
-                PqAsBinary = pq    ,
+                PqAsBinary = pq,
                 ServerPublicKeyFingerprints = new TVector<long>(publicKeyFingerprint)
             };
         }
