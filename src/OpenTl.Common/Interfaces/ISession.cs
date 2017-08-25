@@ -11,5 +11,7 @@ namespace OpenTl.Common.Interfaces
         byte[] ServerSalt { get; set; }
 
         ulong MessageId { get; set; }
+
+        int CurrentUserId { get; set; }
     }
 }
