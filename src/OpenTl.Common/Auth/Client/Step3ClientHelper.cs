@@ -25,7 +25,6 @@
             
             var p = new BigInteger(dhInnerData.DhPrimeAsBinary);  
             var g = BigInteger.ValueOf(dhInnerData.G);
-            Guard.That(g).IsValidDhGParameter(p);
 
             var dhParameters = new DHParameters(p, g);
             KeyGenerationParameters kgp = new DHKeyGenerationParameters(new SecureRandom(), dhParameters);
@@ -41,7 +40,7 @@
             var serverPublicKey = new DHPublicKeyParameters(y, dhParameters);
             var clientKeyAgree = AgreementUtilities.GetBasicAgreement("DH");
             clientKeyAgree.Init(clientKeyPair.Private);
-            clientAgree = clientKeyAgree.CalculateAgreement(serverPublicKey).ToByteArray();
+            clientAgree = clientKeyAgree.CalculateAgreement(serverPublicKey).ToByteArrayUnsigned();
             
             var clientDhInnerData = new TClientDHInnerData
             {

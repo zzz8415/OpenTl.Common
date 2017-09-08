@@ -89,8 +89,8 @@ namespace OpenTl.Common.Crypto
 
                 var rsaPublicKey = new TRsaPublicKey
                           {
-                              E = keyParameter.Exponent.ToByteArray(),
-                              N = keyParameter.Modulus.ToByteArray()
+                              E = keyParameter.Exponent.ToByteArrayUnsigned(),
+                              N = keyParameter.Modulus.ToByteArrayUnsigned()
                           };
 
                 var data = Serializer.SerializeObject(rsaPublicKey);

@@ -48,7 +48,7 @@
         {
             var newNonceHash = SHA1Helper.ComputeHashsum(newNonce).Skip(4).ToArray();
             
-            var authKeyAuxHash = SHA1Helper.ComputeHashsum(agreement.ToByteArray()).Take(8).ToArray();
+            var authKeyAuxHash = SHA1Helper.ComputeHashsum(agreement.ToByteArrayUnsigned()).Take(8).ToArray();
 
             return new TDhGenOk
                    {

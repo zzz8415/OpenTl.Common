@@ -12,10 +12,7 @@ namespace OpenTl.Common.UnitTests
     {
         private static readonly Random Random = new Random();
 
-        public ISession session = GenerateSession();
-        
-        private ulong _messageId;
-        public ulong MessageId => _messageId++;
+        public ISession Session = GenerateSession();
         
         private int _seqNumber;
         public int SeqNumber => _seqNumber++;
@@ -31,14 +28,13 @@ namespace OpenTl.Common.UnitTests
 
             var data = Serializer.SerializeObject(user);
 
-            var encryptedData = MtProtoHelper.FromClientEncrypt(data, session, MessageId, SeqNumber);
-            var dencryptedData = MtProtoHelper.FromClientDecrypt(encryptedData, session, out var authKeyId, out var serverSalt, out var sessionId, out var messageId, out var seqNumber);
+            var encryptedData = MtProtoHelper.FromClientEncrypt(data, Session, SeqNumber);
+            var dencryptedData = MtProtoHelper.FromClientDecrypt(encryptedData, Session, out var authKeyId, out var serverSalt, out var sessionId, out var messageId, out var seqNumber);
             
             Assert.Equal(data, dencryptedData);
-            Assert.Equal(session.AuthKey.Id, authKeyId);
-            Assert.Equal(session.ServerSalt, serverSalt);
-            Assert.Equal(session.SessionId, sessionId);
-            Assert.Equal(_messageId - 1, messageId);
+            Assert.Equal(Session.AuthKey.Id, authKeyId);
+            Assert.Equal(Session.ServerSalt, serverSalt);
+            Assert.Equal(Session.SessionId, sessionId);
             Assert.Equal(_seqNumber - 1, seqNumber);
         }
         
@@ -54,14 +50,13 @@ namespace OpenTl.Common.UnitTests
 
             var data = Serializer.SerializeObject(user);
 
-            var encryptedData = MtProtoHelper.FromServerEncrypt(data, session, MessageId, SeqNumber);
-            var dencryptedData = MtProtoHelper.FromServerDecrypt(encryptedData, session, out var authKeyId, out var serverSalt, out var sessionId, out var messageId, out var seqNumber);
+            var encryptedData = MtProtoHelper.FromServerEncrypt(data, Session, SeqNumber);
+            var dencryptedData = MtProtoHelper.FromServerDecrypt(encryptedData, Session, out var authKeyId, out var serverSalt, out var sessionId, out var messageId, out var seqNumber);
             
             Assert.Equal(data, dencryptedData);
-            Assert.Equal(session.AuthKey.Id, authKeyId);
-            Assert.Equal(session.ServerSalt, serverSalt);
-            Assert.Equal(session.SessionId, sessionId);
-            Assert.Equal(_messageId - 1, messageId);
+            Assert.Equal(Session.AuthKey.Id, authKeyId);
+            Assert.Equal(Session.ServerSalt, serverSalt);
+            Assert.Equal(Session.SessionId, sessionId);
             Assert.Equal(_seqNumber - 1, seqNumber);
         }
 
