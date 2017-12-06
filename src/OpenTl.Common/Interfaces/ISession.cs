@@ -12,6 +12,6 @@ namespace OpenTl.Common.Interfaces
 
         ulong MessageId { get; set; }
 
-        int CurrentUserId { get; set; }
+        int UserId { get; set; }
     }
 }
