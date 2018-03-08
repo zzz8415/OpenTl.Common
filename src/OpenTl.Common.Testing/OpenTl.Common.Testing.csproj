@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net46;netcoreapp1.1</TargetFrameworks>
+    <TargetFrameworks>netstandard16;net46</TargetFrameworks>
     <Title>OpenTl commmon library</Title>
     <Version>1.0.0</Version>
     <PackageId>OpenTl.Common.Testing</PackageId>
