@@ -8,12 +8,12 @@
     {
         private static readonly Random Random = new Random();
 
-        public static RequestReqPq GetRequest(out byte[] nonce)
+        public static RequestReqPqMulty GetRequest()
         {
-            nonce = new byte[16];
+            var nonce = new byte[16];
             Random.NextBytes(nonce);
             
-           return new RequestReqPq {Nonce = nonce};
+           return new RequestReqPqMulty {Nonce = nonce};
         }
     }
 }

@@ -6,12 +6,14 @@ namespace OpenTl.Common.Interfaces
     {
         AuthKey AuthKey { get; set; }
         
-        ulong SessionId { get; set; }
+        ulong SessionId { get; }
+        
+        int LastMessageId { get; set; }
+        
+        int SequenceNumber { get; set; }
         
         byte[] ServerSalt { get; set; }
 
-        ulong MessageId { get; set; }
-
-        int UserId { get; set; }
+        long? UserId { get; set; }
     }
 }

@@ -5,6 +5,8 @@
 
     using BarsGroup.CodeGuard;
 
+    using DotNetty.Buffers;
+
     using OpenTl.Common.Crypto;
     using OpenTl.Schema;
     using OpenTl.Schema.Serialization;
@@ -23,7 +25,7 @@
     {
         public static ISetClientDHParamsAnswer GetResponse(RequestSetClientDHParams setClientDhParams, byte[] newNonce, AsymmetricCipherKeyPair serverKeyPair, out BigInteger serverAgree, out byte[] serverSalt)
         {
-            AesHelper.ComputeAESParameters(newNonce, setClientDhParams.ServerNonce, out var aesKeyData);
+            AesHelper.ComputeAesParameters(newNonce, setClientDhParams.ServerNonce, out var aesKeyData);
             
             var dhInnerData = DeserializeRequest(setClientDhParams, aesKeyData);
 
@@ -39,16 +41,16 @@
 
             serverAgree = serverKeyAgree.CalculateAgreement(clientPublicKey);
 
-            serverSalt = SaltHelper.ComputeServerSalt(newNonce, setClientDhParams.ServerNonce);
+            serverSalt = SaltHelper.ComputeSalt(newNonce, setClientDhParams.ServerNonce);
             
             return SerializeResponse(setClientDhParams, newNonce, serverAgree);
         }
 
         private static TDhGenOk SerializeResponse(RequestSetClientDHParams setClientDhParams, byte[] newNonce, BigInteger agreement)
         {
-            var newNonceHash = SHA1Helper.ComputeHashsum(newNonce).Skip(4).ToArray();
+            var newNonceHash = Sha1Helper.ComputeHashsum(newNonce).Skip(4).ToArray();
             
-            var authKeyAuxHash = SHA1Helper.ComputeHashsum(agreement.ToByteArrayUnsigned()).Take(8).ToArray();
+            var authKeyAuxHash = Sha1Helper.ComputeHashsum(agreement.ToByteArrayUnsigned()).Take(8).ToArray();
 
             return new TDhGenOk
                    {
@@ -66,15 +68,21 @@
             var serverHashsum = answerWithHash.Take(20).ToArray();
             var answer = answerWithHash.Skip(20).ToArray();
 
-            var clientDhInnerData = (TClientDHInnerData)Serializer.DeserializeObject(answer);
+            var answerBuffer = PooledByteBufferAllocator.Default.Buffer();
 
-            var clearAnswer = Serializer.SerializeObject(clientDhInnerData);
-            var hashsum = SHA1Helper.ComputeHashsum(clearAnswer);
-            Guard.That(serverHashsum).IsItemsEquals(hashsum);
+            try
+            {
+                answerBuffer.WriteBytes(answer);
+            
+                var clientDhInnerData = (TClientDHInnerData)Serializer.Deserialize(answerBuffer);
 
-            return clientDhInnerData;
+                return clientDhInnerData;
 
+            }
+            finally
+            {
+                answerBuffer.Release();
+            }
         }
-
     }
 }

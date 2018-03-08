@@ -1,133 +1,132 @@
-﻿using System;
-using System.IO;
-using System.Linq;
+﻿using System.Linq;
 using BarsGroup.CodeGuard;
 using OpenTl.Common.Crypto;
 using OpenTl.Common.Interfaces;
 
 namespace OpenTl.Common.MtProto
 {
+    using System.Security.Cryptography;
+
+    using DotNetty.Buffers;
+
+    using OpenTl.Common.Extesions;
+
+    using Org.BouncyCastle.Security;
+
     public static class MtProtoHelper
     {
-        private static AesKeyData CalcKey(byte[] sharedKey, byte[] msgKey, bool client)
+        private static readonly SecureRandom Random = new SecureRandom();
+        
+        public static AesKeyData CalcKey(byte[] authKey, byte[] msgKey, bool toServer)
         {
-            Guard.That(sharedKey.Length, nameof(sharedKey)).IsEqual(256);
+            Guard.That(authKey.Length, nameof(authKey)).IsEqual(256);
             Guard.That(msgKey.Length, nameof(msgKey)).IsEqual(16);
 
-            var x = client ? 0 : 8;
-            var buffer = new byte[48];
+            var x = toServer
+                ? 0
+                : 8;
 
-            Array.Copy(msgKey, 0, buffer, 0, 16); // buffer[0:16] = msgKey
-            Array.Copy(sharedKey, x, buffer, 16, 32); // buffer[16:48] = authKey[x:x+32]
-            var sha1A = SHA1Helper.ComputeHashsum(buffer); // sha1a = sha1(buffer)
+            //sha256_a = SHA256 (msg_key + substr (auth_key, x, 36));
+            var sha256ASource = msgKey.Concat(authKey.Skip(x).Take(36)).ToArray();
+            var sha256A = Sha256(sha256ASource);
 
-            Array.Copy(sharedKey, 32 + x, buffer, 0, 16); // buffer[0:16] = authKey[x+32:x+48]
-            Array.Copy(msgKey, 0, buffer, 16, 16); // buffer[16:32] = msgKey
-            Array.Copy(sharedKey, 48 + x, buffer, 32, 16); // buffer[32:48] = authKey[x+48:x+64]
-            var sha1B = SHA1Helper.ComputeHashsum(buffer); // sha1b = sha1(buffer)
+            //sha256_b = SHA256 (substr (auth_key, 40+x, 36) + msg_key);
+            var sha256BSource = authKey.Skip(40 + x).Take(36).Concat(msgKey).ToArray();
+            var sha256B = Sha256(sha256BSource);
 
-            Array.Copy(sharedKey, 64 + x, buffer, 0, 32); // buffer[0:32] = authKey[x+64:x+96]
-            Array.Copy(msgKey, 0, buffer, 32, 16); // buffer[32:48] = msgKey
-            var sha1C = SHA1Helper.ComputeHashsum(buffer); // sha1c = sha1(buffer)
+            //aes_key = substr (sha256_a, 0, 8) + substr (sha256_b, 8, 16) + substr (sha256_a, 24, 8);
+            var aesKey = sha256A.Take(8).Concat(sha256B.Skip(8).Take(16)).Concat(sha256A.Skip(24).Take(8)).ToArray();
 
-            Array.Copy(msgKey, 0, buffer, 0, 16); // buffer[0:16] = msgKey
-            Array.Copy(sharedKey, 96 + x, buffer, 16, 32); // buffer[16:48] = authKey[x+96:x+128]
-            var sha1D = SHA1Helper.ComputeHashsum(buffer); // sha1d = sha1(buffer)
+            //aes_iv = substr (sha256_b, 0, 8) + substr (sha256_a, 8, 16) + substr (sha256_b, 24, 8);
+            var aesIv = sha256B.Take(8).Concat(sha256A.Skip(8).Take(16)).Concat(sha256B.Skip(24).Take(8)).ToArray();
 
-            var key = new byte[32]; // key = sha1a[0:8] + sha1b[8:20] + sha1c[4:16]
-            Array.Copy(sha1A, 0, key, 0, 8);
-            Array.Copy(sha1B, 8, key, 8, 12);
-            Array.Copy(sha1C, 4, key, 20, 12);
-
-            var iv = new byte[32]; // iv = sha1a[8:20] + sha1b[0:8] + sha1c[16:20] + sha1d[0:8]
-            Array.Copy(sha1A, 8, iv, 0, 12);
-            Array.Copy(sha1B, 0, iv, 12, 8);
-            Array.Copy(sha1C, 16, iv, 20, 4);
-            Array.Copy(sha1D, 0, iv, 24, 8);
-
-            return new AesKeyData(key, iv);
+            return new AesKeyData(aesKey, aesIv);
         }
 
-        public static byte[] FromClientDecrypt(byte[] packet, ISession session, out ulong authKeyId,
+        private static byte[] CalcMsgKey(byte[] authKey, byte[] data)
+        {
+            //msg_key_large = SHA256 (substr (auth_key, 88+0, 32) + plaintext + random_padding);
+            var msgKeyLarge = Sha256(authKey.Skip(88).Take(32).Concat(data).ToArray());
+
+            //msg_key = substr (msg_key_large, 8, 16);
+            return msgKeyLarge.Skip(8).Take(16).ToArray();
+        }
+        
+        private static byte[] Sha256(byte[] data)
+        {
+            using (var sha1 = SHA256.Create())
+            {
+                return sha1.ComputeHash(data);
+            }
+        }
+       
+        public static void ToServerEncrypt(IByteBuffer packet, ISession session, long messageId, int seqNumber, IByteBuffer output)
+        {
+            Encrypt(packet, true, session, messageId, seqNumber, output);
+        }
+        
+        public static IByteBuffer FromClientDecrypt(IByteBuffer packet, ISession session, out ulong authKeyId,
             out byte[] serverSalt, out ulong sessionId, out ulong messageId, out int seqNumber)
         {
             return Decrypt(packet, session, true, out authKeyId, out serverSalt, out sessionId, out messageId, out seqNumber);
         }
         
-        public static byte[] FromClientEncrypt(byte[] packet, ISession session, int seqNumber)
+        public static void ToClientEncrypt(IByteBuffer packet, ISession session, long messageId, int seqNumber, IByteBuffer output)
         {
-            return Encypt(packet, true, session, seqNumber);
+            Encrypt(packet, false, session, messageId, seqNumber, output);
         }
-        
-        public static byte[] FromServerDecrypt(byte[] packet, ISession session, out ulong authKeyId,
+
+        public static IByteBuffer FromServerDecrypt(IByteBuffer packet, ISession session, out ulong authKeyId,
             out byte[] serverSalt, out ulong sessionId, out ulong messageId, out int seqNumber)
         {
             return Decrypt(packet, session, false, out authKeyId, out serverSalt, out sessionId, out messageId, out seqNumber);
         }
         
-        public static byte[] FromServerEncrypt(byte[] packet, ISession session, int seqNumber)
+        private static IByteBuffer Decrypt(IByteBuffer packet, ISession session, bool toServer, out ulong authKeyId, out byte[] serverSalt, out ulong sessionId, out ulong messageId, out int seqNumber)
         {
-            return Encypt(packet, false, session, seqNumber);
-        }
+            authKeyId = (ulong)packet.ReadLongLE();
+            var messageKey = packet.ToArray(16);
+            var encryptedData = packet.ToArray(packet.ReadableBytes);
 
-        private static byte[] Decrypt(byte[] packet, ISession session, bool isClient, out ulong authKeyId, out byte[] serverSalt, out ulong sessionId, out ulong messageId, out int seqNumber)
-        {
-            byte[] messageKey;
-            byte[] encryptedData;
-            using (var stream = new MemoryStream(packet))
-            using (var binaryReader = new BinaryReader(stream))
-            {
-                authKeyId = binaryReader.ReadUInt64();
-                messageKey = binaryReader.ReadBytes(16);
-                encryptedData = binaryReader.ReadBytes(packet.Length - 16 - 8);
-            }
-
-            var aesKey = CalcKey(session.AuthKey.Data, messageKey, isClient);
+            var aesKey = CalcKey(session.AuthKey.Data, messageKey, toServer);
 
             var message = AES.DecryptAes(aesKey, encryptedData);
 
-            using (var stream = new MemoryStream(message))
-            using (var binaryReader = new BinaryReader(stream))
-            {
-                serverSalt = binaryReader.ReadBytes(8);
-                sessionId = binaryReader.ReadUInt64();
-                messageId = binaryReader.ReadUInt64();
-                seqNumber = binaryReader.ReadInt32();
-                var length = binaryReader.ReadInt32();
+            var messageBuffer = PooledByteBufferAllocator.Default.Buffer(message.Length);
+            messageBuffer.WriteBytes(message);
+            
+            serverSalt = messageBuffer.ToArray(8);
+            sessionId = (ulong)messageBuffer.ReadLongLE();
+            messageId = (ulong)messageBuffer.ReadLongLE();
+            seqNumber = messageBuffer.ReadIntLE();
+            var length = messageBuffer.ReadIntLE();
 
-                return binaryReader.ReadBytes(length);
-            }
+            return messageBuffer.ReadBytes(length);
         }
 
-        private static byte[] Encypt(byte[] packet, bool isClient, ISession session, int seqNumber)
+        private static void Encrypt(IByteBuffer inputBuffer, bool toServer, ISession session, long messageId, int seqNumber, IByteBuffer output)
         {
-            byte[] messsage;
-            using (var stream = new MemoryStream())
-            using (var binaryWriter = new BinaryWriter(stream))
-            {
-                binaryWriter.Write(session.ServerSalt);
-                binaryWriter.Write(session.SessionId);
-                binaryWriter.Write(session.MessageId);
-                binaryWriter.Write(seqNumber);
-                binaryWriter.Write(packet.Length);
-                binaryWriter.Write(packet);
+            var messageBuffer = PooledByteBufferAllocator.Default.Buffer();
+            messageBuffer.WriteBytes(session.ServerSalt);
+            messageBuffer.WriteLongLE((long)session.SessionId);
+            messageBuffer.WriteLongLE(messageId);
+            messageBuffer.WriteIntLE(seqNumber);
 
-                messsage = stream.ToArray();
-            }
+            messageBuffer.WriteIntLE(inputBuffer.ReadableBytes);
+            messageBuffer.WriteBytes(inputBuffer);
 
-            var messageKey = SHA1Helper.ComputeHashsum(messsage).Take(16).ToArray();
+            var randomPaddingLenght = Random.Next(1024 / 16) * 16 + 16 - messageBuffer.ReadableBytes % 16;
+            messageBuffer.WriteBytes(Random.GenerateSeed(randomPaddingLenght));
+            
+            var messageData = messageBuffer.ToArray(messageBuffer.ReadableBytes);
 
-            var aesKey = CalcKey(session.AuthKey.Data, messageKey, isClient);
+            var messageKey = CalcMsgKey(session.AuthKey.Data, messageData);
 
-            using (var stream = new MemoryStream())
-            using (var binaryWriter = new BinaryWriter(stream))
-            {
-                binaryWriter.Write(session.AuthKey.Id);
-                binaryWriter.Write(messageKey);
-                binaryWriter.Write(AES.EncryptAes(aesKey, messsage));
+            var aesKey = CalcKey(session.AuthKey.Data, messageKey, toServer);
 
-                return stream.ToArray();
-            }
+            output.WriteLongLE((long)session.AuthKey.Id);
+            output.WriteBytes(messageKey);
+            output.WriteBytes(AES.EncryptAes(aesKey, messageData));
         }
     }
 }

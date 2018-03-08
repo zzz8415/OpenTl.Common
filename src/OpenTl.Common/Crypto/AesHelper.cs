@@ -7,15 +7,38 @@
 
     public static class AesHelper
     {
-        public static void ComputeAESParameters(byte[] newNonce, byte[] serverNonce, out AesKeyData aesKeyData)
+        public static void ComputeAesParameters(byte[] newNonce, byte[] serverNonce, out AesKeyData aesKeyData)
         {
-            var hashsumForKey = SHA1Helper.ComputeHashsum(newNonce.Concat(serverNonce).ToArray());
-            var aesKey = hashsumForKey.Concat(hashsumForKey.Take(12)).ToArray();
+            using (var hash = SHA1.Create())
+            {
+                var nonces = new byte[48];
 
-            var hashsumForIV = SHA1Helper.ComputeHashsum(serverNonce.Concat(newNonce).ToArray());
-            var aesIV = hashsumForIV.Skip(12).Take(8).Concat(hashsumForIV).Concat(newNonce.Take(4)).ToArray();
+                newNonce.CopyTo(nonces, 0);
+                serverNonce.CopyTo(nonces, 32);
+                var hash1 = hash.ComputeHash(nonces);
 
-            aesKeyData = new AesKeyData(aesKey, aesIV);
+                serverNonce.CopyTo(nonces, 0);
+                newNonce.CopyTo(nonces, 16);
+                var hash2 = hash.ComputeHash(nonces);
+
+                nonces = new byte[64];
+                newNonce.CopyTo(nonces, 0);
+                newNonce.CopyTo(nonces, 32);
+                var hash3 = hash.ComputeHash(nonces);
+
+                using (var keyBuffer = new MemoryStream(32))
+                using (var ivBuffer = new MemoryStream(32))
+                {
+                    keyBuffer.Write(hash1, 0, hash1.Length);
+                    keyBuffer.Write(hash2, 0, 12);
+
+                    ivBuffer.Write(hash2, 12, 8);
+                    ivBuffer.Write(hash3, 0, hash3.Length);
+                    ivBuffer.Write(newNonce, 0, 4);
+
+                    aesKeyData = new AesKeyData(keyBuffer.ToArray(), ivBuffer.ToArray());
+                }
+            }
         }
     }
     

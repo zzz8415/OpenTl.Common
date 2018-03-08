@@ -9,6 +9,8 @@ namespace OpenTl.Common.Crypto
     using System.Collections.Generic;
     using System.Security.Cryptography;
 
+    using DotNetty.Buffers;
+
     /// <summary>
     /// Implements a 32-bit CRC hash algorithm compatible with Zip etc.
     /// </summary>
@@ -33,12 +35,7 @@ namespace OpenTl.Common.Crypto
 
         private uint _hash;
 
-        public Crc32()
-            : this(DefaultPolynomial, DefaultSeed)
-        {
-        }
-
-        public Crc32(uint polynomial, uint seed)
+        private Crc32(uint polynomial, uint seed)
         {
             _table = InitializeTable(polynomial);
             this._seed = _hash = seed;
@@ -100,7 +97,7 @@ namespace OpenTl.Common.Crypto
             return createTable;
         }
 
-        private static uint CalculateHash(uint[] table, uint seed, IList<byte> buffer, int start, int size)
+        private static uint CalculateHash(uint[] table, uint seed, byte[] buffer, int start, int size)
         {
             var hash = seed;
             for (var i = start; i < start + size; i++)

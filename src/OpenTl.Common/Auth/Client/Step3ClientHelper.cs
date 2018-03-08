@@ -4,7 +4,10 @@
 
     using BarsGroup.CodeGuard;
 
+    using DotNetty.Buffers;
+
     using OpenTl.Common.Crypto;
+    using OpenTl.Common.Extesions;
     using OpenTl.Common.GuardExtensions;
     using OpenTl.Schema;
     using OpenTl.Schema.Serialization;
@@ -18,12 +21,12 @@
     {
         public static RequestSetClientDHParams GetRequest(TServerDHParamsOk serverDhParams, byte[] newNonce, out byte[] clientAgree, out int serverTime)
         {
-            AesHelper.ComputeAESParameters(newNonce, serverDhParams.ServerNonce, out var aesKeyData);
+            AesHelper.ComputeAesParameters(newNonce, serverDhParams.ServerNonce, out var aesKeyData);
             
             var dhInnerData = DeserializeResponse(serverDhParams, aesKeyData);
             serverTime = dhInnerData.ServerTime;
             
-            var p = new BigInteger(dhInnerData.DhPrimeAsBinary);  
+            var p = new BigInteger(1, dhInnerData.DhPrimeAsBinary);  
             var g = BigInteger.ValueOf(dhInnerData.G);
 
             var dhParameters = new DHParameters(p, g);
@@ -34,7 +37,7 @@
             var clientKeyPair = keyGen.GenerateKeyPair();
             var publicKey = ((DHPublicKeyParameters)clientKeyPair.Public);
 
-            var y = new BigInteger(dhInnerData.GAAsBinary);
+            var y = new BigInteger(1, dhInnerData.GAAsBinary);
             Guard.That(y).IsValidDhPublicKey(dhParameters.P);
             
             var serverPublicKey = new DHPublicKeyParameters(y, dhParameters);
@@ -55,9 +58,13 @@
 
         private static RequestSetClientDHParams SerializeRequest(TClientDHInnerData clientDhInnerData, AesKeyData aesKeyData)
         {
-            var innerData = Serializer.SerializeObject(clientDhInnerData);
-
-            var hashsum = SHA1Helper.ComputeHashsum(innerData);
+            var dhInnerDataBuffer = PooledByteBufferAllocator.Default.Buffer();
+            
+            Serializer.Serialize(clientDhInnerData, dhInnerDataBuffer);
+            var innerData = new byte[dhInnerDataBuffer.ReadableBytes];
+            dhInnerDataBuffer.ReadBytes(innerData);
+            
+            var hashsum = Sha1Helper.ComputeHashsum(innerData);
 
             var answerWithHash = hashsum.Concat(innerData).ToArray();
 
@@ -73,17 +80,18 @@
 
         private static TServerDHInnerData DeserializeResponse(TServerDHParamsOk serverDhParams, AesKeyData aesKeyData)
         {
-            var encryptedAnswer = serverDhParams.EncryptedAnswerAsBinary;
-            var answerWithHash = AES.DecryptAes(aesKeyData, encryptedAnswer);
+            var answerWithHash = AES.DecryptAes(aesKeyData, serverDhParams.EncryptedAnswerAsBinary);
 
-            var serverHashsum = answerWithHash.Take(20).ToArray();
-            var answer = answerWithHash.Skip(20).ToArray();
+            var answerWithHashBuffer = PooledByteBufferAllocator.Default.Buffer();
+            answerWithHashBuffer.WriteBytes(answerWithHash);
 
-            var serverDhInnerData = (TServerDHInnerData)Serializer.DeserializeObject(answer);
+            var serverHashsum = answerWithHashBuffer.ToArray(20);
 
-            var clearAnswer = Serializer.SerializeObject(serverDhInnerData);
-            var hashsum = SHA1Helper.ComputeHashsum(clearAnswer);
-            Guard.That(serverHashsum).IsItemsEquals(hashsum);
+            var serverDhInnerData = (TServerDHInnerData)Serializer.Deserialize(answerWithHashBuffer);
+
+//            var clearAnswer = Serializer.Serialize(serverDhInnerData);
+//            var hashsum = SHA1Helper.ComputeHashsum(clearAnswer);
+//            Guard.That(serverHashsum).IsItemsEquals(hashsum);
 
             return serverDhInnerData;
         }

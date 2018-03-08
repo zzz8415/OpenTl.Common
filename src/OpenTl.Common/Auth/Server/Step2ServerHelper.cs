@@ -5,6 +5,8 @@
 
     using BarsGroup.CodeGuard;
 
+    using DotNetty.Buffers;
+
     using OpenTl.Common.Crypto;
     using OpenTl.Common.GuardExtensions;
     using OpenTl.Schema;
@@ -92,21 +94,28 @@
 
             var innerData = innerDataWithHash.Skip(20).ToArray();
 
-            var hashsum = SHA1Helper.ComputeHashsum(innerData);
+            var hashsum = Sha1Helper.ComputeHashsum(innerData);
             Guard.That(shaHashsum).IsItemsEquals(hashsum);
 
-            return Serializer.DeserializeObject(innerData).Cast<TPQInnerData>();
+            var innerDataBuffer = PooledByteBufferAllocator.Default.Buffer(innerData.Length);
+            innerDataBuffer.WriteBytes(innerData);
+            
+            return Serializer.Deserialize(innerDataBuffer).Cast<TPQInnerData>();
         }
 
         private static TServerDHParamsOk SerializeResponse(TPQInnerData pqInnerData, TServerDHInnerData dhInnerData)
         {
-            var answer = Serializer.SerializeObject(dhInnerData);
+            var dhInnerDataBuffer = PooledByteBufferAllocator.Default.Buffer();
 
-            var hashsum = SHA1Helper.ComputeHashsum(answer);
+            Serializer.Serialize(dhInnerData, dhInnerDataBuffer);
+            var answer = new byte[dhInnerDataBuffer.ReadableBytes];
+            dhInnerDataBuffer.ReadBytes(answer);
+            
+            var hashsum = Sha1Helper.ComputeHashsum(answer);
 
             var answerWithHash = hashsum.Concat(answer).ToArray();
 
-            AesHelper.ComputeAESParameters(pqInnerData.NewNonce, pqInnerData.ServerNonce, out var aesKeyData);
+            AesHelper.ComputeAesParameters(pqInnerData.NewNonce, pqInnerData.ServerNonce, out var aesKeyData);
 
             var encryptedAnswer = AES.EncryptAes(aesKeyData, answerWithHash);
             return new TServerDHParamsOk

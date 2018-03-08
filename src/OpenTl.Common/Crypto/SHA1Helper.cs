@@ -2,7 +2,7 @@
 {
     using System.Security.Cryptography;
 
-    public static class SHA1Helper
+    public static class Sha1Helper
     {
         public static byte[] ComputeHashsum (byte[] data)
         {

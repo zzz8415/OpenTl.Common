@@ -1,32 +1,27 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
+using System.Net;
+using System.Security.Cryptography;
+using DotNetty.Buffers;
+using OpenTl.Schema;
+using OpenTl.Schema.Serialization;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Encodings;
 using Org.BouncyCastle.Crypto.Engines;
+using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.OpenSsl;
 
 namespace OpenTl.Common.Crypto
 {
-    using System;
-    using System.Linq;
-    using System.Security.Cryptography;
-    using System.Security.Cryptography.X509Certificates;
-
-    using MoreLinq;
-
-    using OpenTl.Schema;
-    using OpenTl.Schema.Serialization;
-
-    using Org.BouncyCastle.Crypto.Parameters;
-
     public static class RSAHelper
     {
         public static byte[] RsaEncryptWithPublic(byte[] bytesToEncrypt, string publicKey)
         {
-            var encryptEngine = new Pkcs1Encoding(new RsaEngine());
+            var encryptEngine = new RsaEngine();
 
             using (var txtreader = new StringReader(publicKey))
             {
-                var keyParameter = (RsaKeyParameters)new PemReader(txtreader).ReadObject();
+                var keyParameter = (RsaKeyParameters) new PemReader(txtreader).ReadObject();
 
                 encryptEngine.Init(true, keyParameter);
             }
@@ -36,15 +31,14 @@ namespace OpenTl.Common.Crypto
 
         public static byte[] RsaEncryptWithPrivate(byte[] bytesToEncrypt, string privateKey)
         {
-            var encryptEngine = new Pkcs1Encoding(new RsaEngine());
+            var encryptEngine = new RsaEngine();
 
             using (var txtreader = new StringReader(privateKey))
             {
-                var keyParameter = (AsymmetricCipherKeyPair)new PemReader(txtreader).ReadObject();
+                var keyParameter = (AsymmetricCipherKeyPair) new PemReader(txtreader).ReadObject();
 
                 encryptEngine.Init(true, keyParameter.Private);
             }
-
 
             return encryptEngine.ProcessBlock(bytesToEncrypt, 0, bytesToEncrypt.Length);
         }
@@ -54,11 +48,11 @@ namespace OpenTl.Common.Crypto
 
         public static byte[] RsaDecryptWithPrivate(byte[] bytesToDecrypt, string privateKey)
         {
-            var decryptEngine = new Pkcs1Encoding(new RsaEngine());
+            var decryptEngine = new RsaEngine();
 
             using (var txtreader = new StringReader(privateKey))
             {
-                var keyParameter = (AsymmetricCipherKeyPair)new PemReader(txtreader).ReadObject();
+                var keyParameter = (AsymmetricCipherKeyPair) new PemReader(txtreader).ReadObject();
 
                 decryptEngine.Init(false, keyParameter.Private);
             }
@@ -68,11 +62,11 @@ namespace OpenTl.Common.Crypto
 
         public static byte[] RsaDecryptWithPublic(byte[] bytesToDecrypt, string publicKey)
         {
-            var decryptEngine = new Pkcs1Encoding(new RsaEngine());
+            var decryptEngine = new RsaEngine();
 
             using (var txtreader = new StringReader(publicKey))
             {
-                var keyParameter = (RsaKeyParameters)new PemReader(txtreader).ReadObject();
+                var keyParameter = (RsaKeyParameters) new PemReader(txtreader).ReadObject();
 
                 decryptEngine.Init(false, keyParameter);
             }
@@ -82,23 +76,31 @@ namespace OpenTl.Common.Crypto
 
         public static long GetFingerprint(string key)
         {
-            using (var sha1 = SHA1.Create())
+            TRsaPublicKey rsaPublicKey;
             using (var txtreader = new StringReader(key))
             {
                 var keyParameter = (RsaKeyParameters) new PemReader(txtreader).ReadObject();
 
-                var rsaPublicKey = new TRsaPublicKey
-                          {
-                              E = keyParameter.Exponent.ToByteArrayUnsigned(),
-                              N = keyParameter.Modulus.ToByteArrayUnsigned()
-                          };
-
-                var data = Serializer.SerializeObject(rsaPublicKey);
-
-                var hash = sha1.ComputeHash(data);
-
-                return BitConverter.ToInt64(hash, hash.Length - 8);
+                rsaPublicKey = new TRsaPublicKey
+                {
+                    E = keyParameter.Exponent.ToByteArrayUnsigned(),
+                    N = keyParameter.Modulus.ToByteArrayUnsigned()
+                };
             }
+
+            var rsaPublicKeyBuffer = PooledByteBufferAllocator.Default.Buffer();
+            Serializer.Serialize(rsaPublicKey, rsaPublicKeyBuffer);
+
+            var data = new byte[rsaPublicKeyBuffer.ReadableBytes];
+            rsaPublicKeyBuffer.ReadBytes(data);
+
+            byte[] hash;
+            using (var sha1 = SHA1.Create())
+            {
+                hash = sha1.ComputeHash(data);
+            }
+
+            return BitConverter.ToInt64(hash, hash.Length - 8);
         }
     }
 }
