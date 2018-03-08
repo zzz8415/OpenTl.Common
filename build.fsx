@@ -42,6 +42,7 @@ Target "Build" (fun _ ->
          Project = "./src/OpenTl.Common.Testing/OpenTl.Common.Testing.csproj"
          })
    )
+   
 
 Target "PublishNuget" (fun _ -> 
    Paket.Push (fun nugetParams -> 
@@ -59,7 +60,7 @@ Target "Default" (fun _ ->
 // Dependencies
 "Clean"
    ==> "Build"
-   ==> "PublishNuget"
+//    ==> "PublishNuget"
    ==> "Default"
 
 // start build
