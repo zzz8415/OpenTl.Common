@@ -30,13 +30,6 @@ Target "Build" (fun _ ->
       Project = "./src/OpenTl.Common/OpenTl.Common.csproj"
    })
    
-   Paket.Push (fun nugetParams -> 
-       { nugetParams with
-           ApiKey = apikey
-           WorkingDir = buildDir
-       }
-      )
-   
    DotNetCli.Build (fun p -> 
       { p with
          Project = "./src/OpenTl.Common.Testing/OpenTl.Common.Testing.csproj"
