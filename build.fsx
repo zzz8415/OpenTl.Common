@@ -57,10 +57,5 @@ Target "Default" (fun _ ->
             )
 )
 
-Target "Default" (fun _ ->
-   trace "Hello World from FAKE"
-)
-
-
 // start build
 RunTargetOrDefault "Default"
