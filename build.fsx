@@ -60,7 +60,7 @@ Target "Default" (fun _ ->
 // Dependencies
 "Clean"
    ==> "Build"
-//    ==> "PublishNuget"
+   ==> "PublishNuget"
    ==> "Default"
 
 // start build
