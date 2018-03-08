@@ -36,8 +36,6 @@ Target "Build" (fun _ ->
          Configuration = "Release"
       })
    
-   ()
-   
    DotNetCli.Pack (fun p -> 
       { p with
          OutputPath = buildDir
