@@ -11,38 +11,38 @@ let version = getBuildParam "version"
 Target "Default" (fun _ -> 
    XMLHelper.XmlPokeInnerText "./src/OpenTl.Common/OpenTl.Common.csproj" "/Project/PropertyGroup/Version" version
    XMLHelper.XmlPokeInnerText "./src/OpenTl.Common.Testing/OpenTl.Common.Testing.csproj" "/Project/PropertyGroup/Version" version
-
+   
    DotNetCli.Restore (fun p -> p)
-
+   
    CleanDir buildDir
- 
+   
    DotNetCli.Build (fun p -> 
    { p with
       Project = "./src/OpenTl.Common/OpenTl.Common.csproj"
       Configuration = "Release"
    })
    
-    DotNetCli.Pack (fun p -> 
-      { p with
-         OutputPath = buildDir
-         Project = "./src/OpenTl.Common/OpenTl.Common.csproj"
-      })
+   DotNetCli.Pack (fun p -> 
+   { p with
+      OutputPath = buildDir
+      Project = "./src/OpenTl.Common/OpenTl.Common.csproj"
+   })
       
-    Paket.Push (fun nugetParams -> 
-          { nugetParams with
-              ApiKey = apikey
-              WorkingDir = buildDir
-          }
-         )
+   Paket.Push (fun nugetParams -> 
+       { nugetParams with
+           ApiKey = apikey
+           WorkingDir = buildDir
+       }
+      )
    
    CleanDir buildDir
-
+   
    DotNetCli.Build (fun p -> 
       { p with
          Project = "./src/OpenTl.Common.Testing/OpenTl.Common.Testing.csproj"
          Configuration = "Release"
       })
-
+   
    DotNetCli.Pack (fun p -> 
       { p with
          OutputPath = buildDir
