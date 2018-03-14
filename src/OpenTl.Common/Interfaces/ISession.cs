@@ -14,6 +14,6 @@ namespace OpenTl.Common.Interfaces
         
         byte[] ServerSalt { get; set; }
 
-        long? UserId { get; set; }
+        int? UserId { get; set; }
     }
 }
