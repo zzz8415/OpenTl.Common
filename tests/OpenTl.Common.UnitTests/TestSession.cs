@@ -19,6 +19,6 @@ namespace OpenTl.Common.UnitTests
 
         public byte[] ServerSalt { get; set; }
         
-        public long? UserId { get; set; }
+        public int? UserId { get; set; }
     }
 }
