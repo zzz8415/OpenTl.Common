@@ -6,8 +6,10 @@
     using BarsGroup.CodeGuard;
 
     using DotNetty.Buffers;
+    using DotNetty.Common.Utilities;
 
     using OpenTl.Common.Crypto;
+    using OpenTl.Common.Extesions;
     using OpenTl.Common.GuardExtensions;
     using OpenTl.Schema;
     using OpenTl.Schema.Serialization;
@@ -105,11 +107,17 @@
 
         private static TServerDHParamsOk SerializeResponse(TPQInnerData pqInnerData, TServerDHInnerData dhInnerData)
         {
-            var dhInnerDataBuffer = PooledByteBufferAllocator.Default.Buffer();
+            var dhInnerDataBuffer =Serializer.Serialize(dhInnerData);
 
-            Serializer.Serialize(dhInnerData, dhInnerDataBuffer);
-            var answer = new byte[dhInnerDataBuffer.ReadableBytes];
-            dhInnerDataBuffer.ReadBytes(answer);
+            byte[] answer;
+            try
+            {
+                answer = dhInnerDataBuffer.ToArray();
+            }
+            finally
+            {
+                dhInnerDataBuffer.SafeRelease();
+            }
             
             var hashsum = Sha1Helper.ComputeHashsum(answer);
 

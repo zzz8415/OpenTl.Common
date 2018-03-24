@@ -116,8 +116,7 @@ AgMBAAE=
 
             var response = Step2ClientHelper.GetRequest(resPq, PublicKey, out var newNonce);
 
-            var buffer = PooledByteBufferAllocator.Default.Buffer();
-            Serializer.Serialize(response, buffer);
+            var buffer = Serializer.Serialize(response);
 
             var dataNew = new byte[buffer.ReadableBytes];
             buffer.ReadBytes(dataNew);

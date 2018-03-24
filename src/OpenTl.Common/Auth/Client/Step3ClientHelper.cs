@@ -5,6 +5,7 @@
     using BarsGroup.CodeGuard;
 
     using DotNetty.Buffers;
+    using DotNetty.Common.Utilities;
 
     using OpenTl.Common.Crypto;
     using OpenTl.Common.Extesions;
@@ -58,11 +59,18 @@
 
         private static RequestSetClientDHParams SerializeRequest(TClientDHInnerData clientDhInnerData, AesKeyData aesKeyData)
         {
-            var dhInnerDataBuffer = PooledByteBufferAllocator.Default.Buffer();
-            
-            Serializer.Serialize(clientDhInnerData, dhInnerDataBuffer);
-            var innerData = new byte[dhInnerDataBuffer.ReadableBytes];
-            dhInnerDataBuffer.ReadBytes(innerData);
+            var dhInnerDataBuffer = Serializer.Serialize(clientDhInnerData);
+
+            byte[] innerData;
+            try
+            {
+                Serializer.Serialize(clientDhInnerData);
+                innerData = dhInnerDataBuffer.ToArray();
+            }
+            finally
+            {
+                dhInnerDataBuffer.SafeRelease();
+            }
             
             var hashsum = Sha1Helper.ComputeHashsum(innerData);
 
@@ -83,17 +91,26 @@
             var answerWithHash = AES.DecryptAes(aesKeyData, serverDhParams.EncryptedAnswerAsBinary);
 
             var answerWithHashBuffer = PooledByteBufferAllocator.Default.Buffer();
-            answerWithHashBuffer.WriteBytes(answerWithHash);
 
-            var serverHashsum = answerWithHashBuffer.ToArray(20);
+            try
+            {
+                answerWithHashBuffer.WriteBytes(answerWithHash);
 
-            var serverDhInnerData = (TServerDHInnerData)Serializer.Deserialize(answerWithHashBuffer);
+                // var serverHashsum = answerWithHashBuffer.ToArray(20);
+                answerWithHashBuffer.SkipBytes(20);
 
-//            var clearAnswer = Serializer.Serialize(serverDhInnerData);
-//            var hashsum = SHA1Helper.ComputeHashsum(clearAnswer);
-//            Guard.That(serverHashsum).IsItemsEquals(hashsum);
+                var serverDhInnerData = (TServerDHInnerData)Serializer.Deserialize(answerWithHashBuffer);
 
-            return serverDhInnerData;
+                // var clearAnswer = Serializer.Serialize(serverDhInnerData);
+                // var hashsum = SHA1Helper.ComputeHashsum(clearAnswer);
+                // Guard.That(serverHashsum).IsItemsEquals(hashsum);
+
+                return serverDhInnerData;
+            }
+            finally
+            {
+                answerWithHashBuffer.SafeRelease();
+            }
         }
     }
 }

@@ -13,6 +13,10 @@ using Org.BouncyCastle.OpenSsl;
 
 namespace OpenTl.Common.Crypto
 {
+    using DotNetty.Common.Utilities;
+
+    using OpenTl.Common.Extesions;
+
     public static class RSAHelper
     {
         public static byte[] RsaEncryptWithPublic(byte[] bytesToEncrypt, string publicKey)
@@ -88,11 +92,16 @@ namespace OpenTl.Common.Crypto
                 };
             }
 
-            var rsaPublicKeyBuffer = PooledByteBufferAllocator.Default.Buffer();
-            Serializer.Serialize(rsaPublicKey, rsaPublicKeyBuffer);
-
-            var data = new byte[rsaPublicKeyBuffer.ReadableBytes];
-            rsaPublicKeyBuffer.ReadBytes(data);
+            var rsaPublicKeyBuffer = Serializer.Serialize(rsaPublicKey);
+            byte[] data;
+            try
+            {
+                data = rsaPublicKeyBuffer.ToArray();
+            }
+            finally
+            {
+                rsaPublicKeyBuffer.SafeRelease();
+            }
 
             byte[] hash;
             using (var sha1 = SHA1.Create())

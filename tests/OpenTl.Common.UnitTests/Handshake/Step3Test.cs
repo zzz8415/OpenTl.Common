@@ -29,8 +29,7 @@ namespace OpenTl.Common.UnitTests.Handshake
                 ServerNonce = _serverNonce
             };
 
-            var packageBuffer = PooledByteBufferAllocator.Default.Buffer();
-            Serializer.Serialize(paramsOk, packageBuffer);
+            var packageBuffer =Serializer.Serialize(paramsOk);
             var packageData = packageBuffer.ToArray();
 
             var completeDhExchange = new Step3CompleteDhExchange();

@@ -7,8 +7,10 @@
     using BarsGroup.CodeGuard;
 
     using DotNetty.Buffers;
+    using DotNetty.Common.Utilities;
 
     using OpenTl.Common.Crypto;
+    using OpenTl.Common.Extesions;
     using OpenTl.Common.GuardExtensions;
     using OpenTl.Schema;
     using OpenTl.Schema.Serialization;
@@ -40,30 +42,40 @@
                                   NewNonce = newNonce
                               };
 
-            var buffer = PooledByteBufferAllocator.Default.Buffer();
+            var serializedData = Serializer.Serialize(pqInnerData);
 
-            Serializer.Serialize(pqInnerData, buffer);
-           
-            var innerData = new byte[buffer.ReadableBytes];
-            buffer.ReadBytes(innerData);
+            byte[] innerData;
+            try
+            {
+                innerData = serializedData.ToArray();
+            }
+            finally
+            {
+                serializedData.SafeRelease();
+            }
 
             var fingerprint = RSAHelper.GetFingerprint(publicKey);
             Guard.That(resPq.ServerPublicKeyFingerprints.Items).Contains(fingerprint);
             
             var hashsum = Sha1Helper.ComputeHashsum(innerData);
 
-            buffer.ResetReaderIndex();
-            buffer.ResetWriterIndex();
+            var dataWithHash = PooledByteBufferAllocator.Default.Buffer();
+
+            byte[] innerDataWithHash;
+            try
+            {
+                dataWithHash.WriteBytes(hashsum);
+                dataWithHash.WriteBytes(innerData);
             
-            buffer.WriteBytes(hashsum);
-            buffer.WriteBytes(innerData);
-            
-            var paddingBytes = new byte[255 - buffer.ReadableBytes];
-            Random.NextBytes(paddingBytes);
-            buffer.WriteBytes(paddingBytes);
-            
-            var innerDataWithHash = new byte[buffer.ReadableBytes];
-            buffer.ReadBytes(innerDataWithHash);
+                var paddingBytes = new byte[255 - dataWithHash.ReadableBytes];
+                Random.NextBytes(paddingBytes);
+                dataWithHash.WriteBytes(paddingBytes);
+                innerDataWithHash = dataWithHash.ToArray();
+            }
+            finally
+            {
+                dataWithHash.SafeRelease();
+            }
             
             var ciphertext = RSAHelper.RsaEncryptWithPublic(innerDataWithHash, publicKey);
 

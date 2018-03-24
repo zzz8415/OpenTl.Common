@@ -69,12 +69,11 @@
             var answer = answerWithHash.Skip(20).ToArray();
 
             var answerBuffer = PooledByteBufferAllocator.Default.Buffer();
-
             try
             {
                 answerBuffer.WriteBytes(answer);
             
-                var clientDhInnerData = (TClientDHInnerData)Serializer.Deserialize(answerBuffer);
+                var clientDhInnerData = Serializer.Deserialize(answerBuffer).Cast<TClientDHInnerData>();
 
                 return clientDhInnerData;
 

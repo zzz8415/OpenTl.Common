@@ -28,8 +28,7 @@ namespace OpenTl.Common.UnitTests
                 Id = 1
             };
 
-            var input = PooledByteBufferAllocator.Default.Buffer();
-            Serializer.Serialize(user, input);
+            var input = Serializer.Serialize(user);
             
             var output = PooledByteBufferAllocator.Default.Buffer();
             MtProtoHelper.ToServerEncrypt(input, _session, 0, SeqNumber, output);
