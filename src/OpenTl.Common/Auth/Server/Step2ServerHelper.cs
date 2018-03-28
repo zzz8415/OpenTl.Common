@@ -9,7 +9,7 @@
     using DotNetty.Common.Utilities;
 
     using OpenTl.Common.Crypto;
-    using OpenTl.Common.Extesions;
+    using OpenTl.Common.Extensions;
     using OpenTl.Common.GuardExtensions;
     using OpenTl.Schema;
     using OpenTl.Schema.Serialization;

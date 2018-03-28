@@ -5,7 +5,7 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    using OpenTl.Common.Extesions;
+    using OpenTl.Common.Extensions;
 
     public static class SaltHelper
     {

@@ -1,4 +1,4 @@
-﻿namespace OpenTl.Common.Extesions
+﻿namespace OpenTl.Common.Extensions
 {
     using System.Collections;
 

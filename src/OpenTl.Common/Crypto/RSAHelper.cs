@@ -15,7 +15,7 @@ namespace OpenTl.Common.Crypto
 {
     using DotNetty.Common.Utilities;
 
-    using OpenTl.Common.Extesions;
+    using OpenTl.Common.Extensions;
 
     public static class RSAHelper
     {
