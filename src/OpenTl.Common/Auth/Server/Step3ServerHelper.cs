@@ -72,7 +72,7 @@
             {
                 answerBuffer.WriteBytes(answer);
             
-                var clientDhInnerData = Serializer.Deserialize(answerBuffer).Cast<TClientDHInnerData>();
+                var clientDhInnerData = Serializer.Deserialize(answerBuffer).Is<TClientDHInnerData>();
 
                 return clientDhInnerData;
 

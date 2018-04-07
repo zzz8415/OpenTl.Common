@@ -102,7 +102,7 @@
             var innerDataBuffer = PooledByteBufferAllocator.Default.Buffer(innerData.Length);
             innerDataBuffer.WriteBytes(innerData);
             
-            return Serializer.Deserialize(innerDataBuffer).Cast<TPQInnerData>();
+            return Serializer.Deserialize(innerDataBuffer).Is<TPQInnerData>();
         }
 
         private static TServerDHParamsOk SerializeResponse(TPQInnerData pqInnerData, TServerDHInnerData dhInnerData)

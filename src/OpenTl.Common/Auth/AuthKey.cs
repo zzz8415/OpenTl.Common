@@ -18,12 +18,12 @@
 
             var hashsum = Sha1Helper.ComputeHashsum(data);
             _auxHash = BitConverter.ToUInt64(hashsum, 0);
-            Id = BitConverter.ToUInt64(hashsum, 8 + 4);
+            Id = BitConverter.ToInt64(hashsum, 8 + 4);
         }
 
         public byte[] Data { get; }
 
-        public ulong Id { get; }
+        public long Id { get; }
 
         public Guid ToGuid()
         {

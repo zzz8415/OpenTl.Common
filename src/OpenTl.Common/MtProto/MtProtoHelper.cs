@@ -68,10 +68,10 @@ namespace OpenTl.Common.MtProto
 
         public static IByteBuffer FromClientDecrypt(IByteBuffer packet,
                                                     ISession session,
-                                                    out ulong authKeyId,
+                                                    out long authKeyId,
                                                     out byte[] serverSalt,
                                                     out ulong sessionId,
-                                                    out ulong messageId,
+                                                    out long messageId,
                                                     out int seqNumber)
         {
             return Decrypt(packet, session, true, out authKeyId, out serverSalt, out sessionId, out messageId, out seqNumber);
@@ -84,10 +84,10 @@ namespace OpenTl.Common.MtProto
 
         public static IByteBuffer FromServerDecrypt(IByteBuffer packet,
                                                     ISession session,
-                                                    out ulong authKeyId,
+                                                    out long authKeyId,
                                                     out byte[] serverSalt,
                                                     out ulong sessionId,
-                                                    out ulong messageId,
+                                                    out long messageId,
                                                     out int seqNumber)
         {
             return Decrypt(packet, session, false, out authKeyId, out serverSalt, out sessionId, out messageId, out seqNumber);
@@ -96,13 +96,13 @@ namespace OpenTl.Common.MtProto
         private static IByteBuffer Decrypt(IByteBuffer packet,
                                            ISession session,
                                            bool toServer,
-                                           out ulong authKeyId,
+                                           out long authKeyId,
                                            out byte[] serverSalt,
                                            out ulong sessionId,
-                                           out ulong messageId,
+                                           out long messageId,
                                            out int seqNumber)
         {
-            authKeyId = (ulong)packet.ReadLongLE();
+            authKeyId = packet.ReadLongLE();
             var messageKey = packet.ToArray(16);
             var encryptedData = packet.ToArray(packet.ReadableBytes);
 
@@ -117,7 +117,7 @@ namespace OpenTl.Common.MtProto
 
                 serverSalt = messageBuffer.ToArray(8);
                 sessionId = (ulong)messageBuffer.ReadLongLE();
-                messageId = (ulong)messageBuffer.ReadLongLE();
+                messageId = messageBuffer.ReadLongLE();
                 seqNumber = messageBuffer.ReadIntLE();
                 var length = messageBuffer.ReadIntLE();
 

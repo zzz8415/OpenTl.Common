@@ -55,7 +55,10 @@
             }
 
             var fingerprint = RSAHelper.GetFingerprint(publicKey);
-            Guard.That(resPq.ServerPublicKeyFingerprints.Items).Contains(fingerprint);
+            if (!resPq.ServerPublicKeyFingerprints.Contains(fingerprint))
+            {
+                 throw new InvalidOperationException("The fingerprint is not found");
+            }
             
             var hashsum = Sha1Helper.ComputeHashsum(innerData);
 

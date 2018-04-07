@@ -73,7 +73,7 @@ namespace OpenTl.Common.UnitTests.Old.Utils
             var randomIds = new TVector<long>();
             for (var i = 0; i < length; i++)
             {
-                randomIds.Items.Add(GenerateRandomLong());
+                randomIds.Add(GenerateRandomLong());
             }
 
             return randomIds;
