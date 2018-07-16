@@ -15,10 +15,10 @@
   <ItemGroup>
     <PackageReference Include="BarsGroup.CodeGuard" Version="3.2.43" />
     <PackageReference Include="Castle.Windsor" Version="4.1.0" />
-    <PackageReference Include="morelinq" Version="2.7.0" />
-    <PackageReference Include="DotNetty.Buffers" Version="0.4.7" />
+    <PackageReference Include="morelinq" Version="3.0.0" />
+    <PackageReference Include="DotNetty.Buffers" Version="0.4.8" />
     <PackageReference Include="OpenTl.BouncyCastle" Version="1.8.3" />
-    <PackageReference Include="OpenTl.Schema" Version="1.82.62" />
+    <PackageReference Include="OpenTl.Schema" Version="1.82.65" />
     <PackageReference Include="System.Security.Cryptography.Algorithms" Version="4.3.0" />
     <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
     <PackageReference Include="log4net" Version="2.0.8" />
